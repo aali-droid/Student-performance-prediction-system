@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduPredict — Student Performance Prediction System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root {
+      --navy: #0f1b2d;
+      --navy-card: #162236;
+      --navy-light: #1e3050;
+      --blue-accent: #4a90d9;
+      --blue-light: #64b5f6;
+      --purple: #7c4dff;
+      --purple-light: #b388ff;
+      --white: #ffffff;
+      --text-primary: #e8eaf6;
+      --text-muted: #90a4ae;
+      --success: #66bb6a;
+      --warning: #ffa726;
+      --danger: #ef5350;
+      --radius: 14px;
+      --shadow: 0 4px 24px rgba(0, 0, 0, .35);
+      --transition: .25s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--navy);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 270px;
+      background: linear-gradient(180deg, #0d1726 0%, #12203a 100%);
+      border-right: 1px solid rgba(74, 144, 217, .15);
+      padding: 1.5rem 1rem;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; bottom: 0; left: 0;
+      z-index: 100;
+      transition: transform var(--transition);
+    }
+
+    .sidebar-logo { text-align: center; padding: .5rem 0 1.2rem; }
+    .sidebar-logo-icon { font-size: 2.8rem; margin-bottom: .3rem; }
+    .sidebar-logo-text { font-size: 1.2rem; font-weight: 700; color: var(--white); }
+    .sidebar-logo-sub {
+      font-size: .72rem; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: .12em; margin-top: .2rem;
+    }
+
+    .divider { height: 1px; background: rgba(74, 144, 217, .15); margin: 1rem 0; }
+
+    .nav-label {
+      color: var(--text-muted); font-weight: 600; font-size: .72rem;
+      text-transform: uppercase; letter-spacing: .08em; padding: 0 .8rem .5rem;
+    }
+
+    .nav-btn {
+      display: flex; align-items: center; gap: .7rem;
+      width: 100%; background: transparent; border: none;
+      color: var(--text-primary); padding: .7rem 1rem;
+      border-radius: 10px; font-size: .92rem; font-weight: 500;
+      font-family: inherit; cursor: pointer; text-align: left;
+      transition: var(--transition); margin-bottom: .25rem;
+    }
+    .nav-btn:hover { background: rgba(74, 144, 217, .12); }
+    .nav-btn.active {
+      background: linear-gradient(135deg, var(--blue-accent), var(--purple));
+      color: var(--white); font-weight: 600;
+      box-shadow: 0 4px 14px rgba(124, 77, 255, .28);
+    }
+
+    .sidebar-footer {
+      margin-top: auto; color: var(--text-muted);
+      font-size: .78rem; text-align: center; padding-top: 1rem;
+    }
+
+    /* Main Content */
+    .main {
+      margin-left: 270px;
+      flex: 1;
+      padding: 2rem 2.5rem;
+      max-width: calc(100vw - 270px);
+    }
+
+    .container { max-width: 1180px; margin: 0 auto; }
+
+    .page { display: none; animation: fadeIn .25s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .hero-title {
+      font-size: 2.2rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--blue-light), var(--purple-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: .25rem;
+    }
+    .hero-subtitle { color: var(--text-muted); font-size: 1.05rem; margin-bottom: 1.8rem; }
+
+    .section-header {
+      font-size: 1.2rem; font-weight: 700; color: var(--white);
+      margin: 1.5rem 0 .9rem; display: flex; align-items: center; gap: .5rem;
+    }
+
+    /* Grids & Cards */
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+
+    .metric-card {
+      background: linear-gradient(135deg, var(--navy-card) 0%, var(--navy-light) 100%);
+      border: 1px solid rgba(74, 144, 217, .18);
+      border-radius: var(--radius);
+      padding: 1.2rem 1.4rem;
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+    }
+    .metric-card:hover {
+      border-color: var(--blue-accent);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(74, 144, 217, .18);
+    }
+    .metric-label {
+      color: var(--text-muted); font-weight: 600; font-size: .75rem;
+      text-transform: uppercase; letter-spacing: .06em; margin-bottom: .4rem;
+    }
+    .metric-value { color: var(--white); font-weight: 700; font-size: 1.75rem; }
+
+    .card {
+      background: linear-gradient(135deg, var(--navy-card), var(--navy-light));
+      border: 1px solid rgba(74, 144, 217, .15);
+      border-radius: var(--radius);
+      padding: 1.4rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1rem;
+      transition: var(--transition);
+    }
+    .card:hover { border-color: var(--blue-accent); }
+    .card-purple { border-left: 4px solid var(--purple); }
+    .card-blue { border-left: 4px solid var(--blue-accent); }
+    .card-success { border-left: 4px solid var(--success); }
+
+    /* Form Controls */
+    .form-group { margin-bottom: 1.1rem; }
+    .form-label {
+      display: flex; justify-content: space-between; align-items: center;
+      font-weight: 600; font-size: .9rem; margin-bottom: .45rem;
+    }
+    .form-val {
+      background: rgba(124, 77, 255, .18); color: var(--purple-light);
+      padding: .15rem .6rem; border-radius: 8px; font-family: 'JetBrains Mono', monospace;
+      font-size: .85rem;
+    }
+    .form-help { color: var(--text-muted); font-size: .78rem; margin-top: .25rem; }
+
+    input[type="range"] {
+      width: 100%; accent-color: var(--purple); cursor: pointer;
+    }
+    input[type="number"], select {
+      width: 100%; background: var(--navy); color: var(--text-primary);
+      border: 1px solid rgba(74, 144, 217, .25); border-radius: 10px;
+      padding: .55rem .8rem; font-family: inherit; font-size: .95rem;
+    }
+    input[type="number"]:focus, select:focus {
+      outline: none; border-color: var(--blue-accent);
+    }
+
+    .btn-row { display: flex; gap: .8rem; margin-top: 1rem; flex-wrap: wrap; }
+    .btn {
+      background: linear-gradient(135deg, var(--blue-accent), var(--purple));
+      color: var(--white); border: none; border-radius: 10px;
+      padding: .75rem 1.8rem; font-weight: 600; font-size: .95rem;
+      cursor: pointer; transition: var(--transition); font-family: inherit;
+      box-shadow: 0 4px 16px rgba(124, 77, 255, .25);
+    }
+    .btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+    .btn-secondary {
+      background: var(--navy-light); border: 1px solid rgba(74, 144, 217, .25);
+      box-shadow: none;
+    }
+    .btn-danger { background: linear-gradient(135deg, #d32f2f, #ef5350); box-shadow: none; }
+
+    /* Prediction Result */
+    .prediction-result { text-align: center; padding: 1.5rem 1rem; }
+    .prediction-score {
+      font-size: 3.8rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--blue-light), var(--purple-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .prediction-label { color: var(--text-muted); font-size: .95rem; margin-top: .25rem; }
+    .grade-badge {
+      display: inline-block; padding: .4rem 1.2rem; border-radius: 20px;
+      font-weight: 700; font-size: .9rem; margin-top: .6rem;
+    }
+    .grade-excellent { background: rgba(102,187,106,.15); color: var(--success); border: 1px solid rgba(102,187,106,.3); }
+    .grade-good { background: rgba(100,181,246,.15); color: var(--blue-light); border: 1px solid rgba(100,181,246,.3); }
+    .grade-average { background: rgba(255,167,38,.15); color: var(--warning); border: 1px solid rgba(255,167,38,.3); }
+    .grade-poor { background: rgba(239,83,80,.15); color: var(--danger); border: 1px solid rgba(239,83,80,.3); }
+
+    .disclaimer {
+      background: rgba(255, 167, 38, .08);
+      border: 1px solid rgba(255, 167, 38, .25);
+      border-radius: 10px; padding: .85rem 1rem;
+      color: var(--warning); font-size: .85rem; margin-top: 1rem;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex; gap: .4rem; background: var(--navy-card);
+      padding: 4px; border-radius: 12px; border: 1px solid rgba(74, 144, 217, .12);
+      margin-bottom: 1.2rem; flex-wrap: wrap;
+    }
+    .tab-btn {
+      background: transparent; border: none; color: var(--text-muted);
+      padding: .55rem 1.1rem; border-radius: 9px; font-weight: 500;
+      cursor: pointer; font-family: inherit; transition: var(--transition);
+    }
+    .tab-btn:hover { color: var(--text-primary); background: rgba(74, 144, 217, .1); }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--blue-accent), var(--purple));
+      color: var(--white); font-weight: 600;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Table */
+    .table-wrap {
+      overflow-x: auto; border-radius: var(--radius);
+      border: 1px solid rgba(74, 144, 217, .18);
+      max-height: 400px; overflow-y: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th, td {
+      padding: .65rem .9rem; text-align: left;
+      border-bottom: 1px solid rgba(74, 144, 217, .1);
+    }
+    th {
+      background: var(--navy-light); color: var(--white);
+      position: sticky; top: 0; font-weight: 600;
+    }
+    tr:hover td { background: rgba(74, 144, 217, .07); }
+
+    .tech-badge {
+      display: inline-block; background: rgba(74, 144, 217, .12);
+      border: 1px solid rgba(74, 144, 217, .2); color: var(--blue-light);
+      padding: .3rem .8rem; border-radius: 20px; font-size: .82rem;
+      font-weight: 500; margin: .2rem;
+    }
+
+    details {
+      background: var(--navy-card); border: 1px solid rgba(74, 144, 217, .15);
+      border-radius: var(--radius); padding: .9rem 1.2rem; margin-bottom: .75rem;
+    }
+    summary { font-weight: 600; cursor: pointer; color: var(--white); }
+    details p, details ul { margin-top: .7rem; color: var(--text-primary); line-height: 1.6; font-size: .93rem; }
+    details ul { padding-left: 1.3rem; }
+
+    .mobile-toggle {
+      display: none; position: fixed; top: 1rem; left: 1rem; z-index: 200;
+      background: var(--navy-card); border: 1px solid rgba(74,144,217,.3);
+      color: var(--white); padding: .5rem .8rem; border-radius: 8px; cursor: pointer;
+    }
+
+    @media (max-width: 960px) {
+      .grid-4 { grid-template-columns: repeat(2, 1fr); }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .mobile-toggle { display: block; }
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; max-width: 100vw; padding: 3.5rem 1rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <button class="mobile-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰ Menu</button>
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">🎓</div>
+      <div class="sidebar-logo-text">EduPredict</div>
+      <div class="sidebar-logo-sub">Performance Analytics</div>
+    </div>
+    <div class="divider"></div>
+    <div class="nav-label">Navigation</div>
+    <button class="nav-btn active" onclick="showPage('dashboard', this)">📊 Dashboard</button>
+    <button class="nav-btn" onclick="showPage('predict', this)">🎯 Predict Performance</button>
+    <button class="nav-btn" onclick="showPage('analytics', this)">📈 Student Analytics</button>
+    <button class="nav-btn" onclick="showPage('explorer', this)">🗃️ Dataset Explorer</button>
+    <button class="nav-btn" onclick="showPage('model', this)">🤖 Model Information</button>
+    <button class="nav-btn" onclick="showPage('about', this)">ℹ️ About Project</button>
+    <div class="sidebar-footer">© 2026 EduPredict · Static Web Edition</div>
+  </aside>
+
+  <main class="main">
+    <div class="container">
+
+      <!-- PAGE 1: DASHBOARD -->
+      <section id="page-dashboard" class="page active">
+        <div class="hero-title">📊 Performance Dashboard</div>
+        <div class="hero-subtitle">Real-time insights from the UCI Student Performance (Mathematics) dataset</div>
+
+        <div class="grid-4">
+          <div class="metric-card"><div class="metric-label">Total Students</div><div class="metric-value" id="kpi-students">-</div></div>
+          <div class="metric-card"><div class="metric-label">Avg Final Grade (G3)</div><div class="metric-value" id="kpi-avg-g3">-</div></div>
+          <div class="metric-card"><div class="metric-label">Avg Absences</div><div class="metric-value" id="kpi-absences">-</div></div>
+          <div class="metric-card"><div class="metric-label">Model R² Score</div><div class="metric-value" id="kpi-r2">-</div></div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 1.5rem;">
+          <div class="card">
+            <div class="section-header" style="margin-top:0;">📈 Final Grade Distribution</div>
+            <div id="chart-dist" style="height:340px;"></div>
+          </div>
+          <div class="card">
+            <div class="section-header" style="margin-top:0;">📚 Study Time vs Final Grade</div>
+            <div id="chart-study-box" style="height:340px;"></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="section-header" style="margin-top:0;">🔗 G1 vs G3 Comparison</div>
+            <div id="chart-g1g3" style="height:340px;"></div>
+          </div>
+          <div class="card">
+            <div class="section-header" style="margin-top:0;">🕐 Recent Predictions</div>
+            <div id="dashboard-recent">
+              <p style="color:var(--text-muted);">No predictions made yet. Head over to <b>Predict Performance</b> to get started! 🎯</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE 2: PREDICT PERFORMANCE -->
+      <section id="page-predict" class="page">
+        <div class="hero-title">🎯 Predict Student Performance</div>
+        <div class="hero-subtitle">Enter student details to predict their final examination grade (G3)</div>
+
+        <div class="card">
+          <div class="section-header" style="margin-top:0;">📝 Student Information</div>
+          <div class="grid-2">
+            <div>
+              <div class="form-group">
+                <div class="form-label"><span>📚 Weekly Study Time</span><span class="form-val" id="val-study">2</span></div>
+                <input type="range" id="in-study" min="1" max="4" value="2" oninput="document.getElementById('val-study').textContent=this.value" />
+                <div class="form-help">1 = &lt;2h · 2 = 2-5h · 3 = 5-10h · 4 = &gt;10h</div>
+              </div>
+              <div class="form-group">
+                <div class="form-label"><span>❌ Previous Class Failures</span><span class="form-val" id="val-fail">0</span></div>
+                <input type="range" id="in-fail" min="0" max="4" value="0" oninput="document.getElementById('val-fail').textContent=this.value" />
+                <div class="form-help">Number of past class failures (0 to 4)</div>
+              </div>
+              <div class="form-group">
+                <div class="form-label"><span>📅 Number of Absences</span></div>
+                <input type="number" id="in-abs" min="0" max="93" value="4" />
+                <div class="form-help">Total school absences (0 to 93)</div>
+              </div>
+            </div>
+            <div>
+              <div class="form-group">
+                <div class="form-label"><span>📝 First Period Marks (G1)</span><span class="form-val" id="val-g1">12</span></div>
+                <input type="range" id="in-g1" min="0" max="20" value="12" oninput="document.getElementById('val-g1').textContent=this.value" />
+                <div class="form-help">First evaluation period grade (0–20)</div>
+              </div>
+              <div class="form-group">
+                <div class="form-label"><span>📝 Second Period Marks (G2)</span><span class="form-val" id="val-g2">13</span></div>
+                <input type="range" id="in-g2" min="0" max="20" value="13" oninput="document.getElementById('val-g2').textContent=this.value" />
+                <div class="form-help">Second evaluation period grade (0–20)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn" onclick="runPrediction()">🚀 PREDICT FINAL PERFORMANCE</button>
+            <button class="btn btn-secondary" onclick="resetForm()">🔄 Reset</button>
+          </div>
+        </div>
+
+        <div id="prediction-output" style="display:none;">
+          <div class="section-header">📊 Prediction Result</div>
+          <div class="grid-2">
+            <div class="card"><div id="chart-gauge" style="height:290px;"></div></div>
+            <div class="card">
+              <div class="prediction-result">
+                <div class="prediction-score" id="pred-score">-</div>
+                <div class="prediction-label">Predicted Final Grade out of 20</div>
+                <div class="grade-badge" id="pred-badge">-</div>
+              </div>
+              <div class="card card-blue" id="pred-summary" style="font-size:.9rem; margin-bottom:0;"></div>
+            </div>
+          </div>
+          <div class="disclaimer">
+            ⚠️ <b>Disclaimer:</b> This prediction is a statistical estimate generated by a Linear Regression model trained on historical data. It is <b>not</b> a guaranteed result and should not replace professional academic evaluation.
+          </div>
+        </div>
+
+        <div id="history-section" style="display:none; margin-top:1.5rem;">
+          <div class="section-header">🕐 Prediction History</div>
+          <div class="table-wrap" id="history-table"></div>
+          <div class="btn-row">
+            <button class="btn" onclick="downloadHistoryCSV()">⬇️ Download Report (CSV)</button>
+            <button class="btn btn-danger" onclick="clearHistory()">🗑️ Clear History</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE 3: STUDENT ANALYTICS -->
+      <section id="page-analytics" class="page">
+        <div class="hero-title">📈 Student Analytics</div>
+        <div class="hero-subtitle">In-depth analysis of student performance factors</div>
+
+        <div class="tabs">
+          <button class="tab-btn active" onclick="showTab('tab-grades', this)">📊 Grade Distribution</button>
+          <button class="tab-btn" onclick="showTab('tab-study', this)">📚 Study Time</button>
+          <button class="tab-btn" onclick="showTab('tab-absences', this)">📅 Absences</button>
+          <button class="tab-btn" onclick="showTab('tab-failures', this)">❌ Failures</button>
+          <button class="tab-btn" onclick="showTab('tab-corr', this)">🔗 Correlations</button>
+        </div>
+
+        <div id="tab-grades" class="tab-panel active">
+          <div class="card"><div id="chart-all-grades" style="height:380px;"></div></div>
+          <div class="card"><div id="chart-pass-fail" style="height:330px;"></div></div>
+        </div>
+        <div id="tab-study" class="tab-panel">
+          <div class="card"><div id="chart-study-bar" style="height:380px;"></div></div>
+        </div>
+        <div id="tab-absences" class="tab-panel">
+          <div class="card"><div id="chart-abs-scatter" style="height:380px;"></div></div>
+        </div>
+        <div id="tab-failures" class="tab-panel">
+          <div class="card"><div id="chart-fail-bar" style="height:380px;"></div></div>
+        </div>
+        <div id="tab-corr" class="tab-panel">
+          <div class="card"><div id="chart-heatmap" style="height:440px;"></div></div>
+          <div class="card card-purple">
+            <b>Key Insights:</b><br>
+            • <b>G2</b> (second period grade) has the strongest correlation with <b>G3</b> (final grade).<br>
+            • <b>G1</b> also strongly correlates with <b>G3</b> — early performance is predictive.<br>
+            • More past failures correlate with lower final grades.
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE 4: DATASET EXPLORER -->
+      <section id="page-explorer" class="page">
+        <div class="hero-title">🗃️ Dataset Explorer</div>
+        <div class="hero-subtitle">Browse, filter, and download the UCI student dataset</div>
+
+        <div class="grid-4" style="margin-bottom:1.25rem;">
+          <div class="metric-card"><div class="metric-label">Rows</div><div class="metric-value" id="exp-rows">-</div></div>
+          <div class="metric-card"><div class="metric-label">Columns Shown</div><div class="metric-value">6</div></div>
+          <div class="metric-card"><div class="metric-label">Missing Values</div><div class="metric-value">0</div></div>
+          <div class="metric-card"><div class="metric-label">Filtered Count</div><div class="metric-value" id="exp-filtered">-</div></div>
+        </div>
+
+        <div class="card">
+          <div class="grid-3">
+            <div class="form-group">
+              <div class="form-label"><span>Min Final Grade (G3)</span><span class="form-val" id="val-min-g3">0</span></div>
+              <input type="range" id="flt-min-g3" min="0" max="20" value="0" oninput="document.getElementById('val-min-g3').textContent=this.value; filterDataset()" />
+            </div>
+            <div class="form-group">
+              <div class="form-label"><span>Study Time</span></div>
+              <select id="flt-study" onchange="filterDataset()">
+                <option value="all">All</option>
+                <option value="1">1 (&lt;2 hours)</option>
+                <option value="2">2 (2–5 hours)</option>
+                <option value="3">3 (5–10 hours)</option>
+                <option value="4">4 (&gt;10 hours)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <div class="form-label"><span>Failures</span></div>
+              <select id="flt-fail" onchange="filterDataset()">
+                <option value="all">All</option>
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+            </div>
+          </div>
+          <div class="btn-row" style="margin-top:.2rem;">
+            <button class="btn" onclick="downloadFilteredCSV()">⬇️ Download Filtered CSV</button>
+          </div>
+        </div>
+
+        <div class="table-wrap" id="dataset-table"></div>
+      </section>
+
+      <!-- PAGE 5: MODEL INFORMATION -->
+      <section id="page-model" class="page">
+        <div class="hero-title">🤖 Model Information</div>
+        <div class="hero-subtitle">Understand the Machine Learning behind the predictions</div>
+
+        <div class="grid-4" style="margin-bottom:1.5rem;">
+          <div class="metric-card"><div class="metric-label">Algorithm</div><div class="metric-value" style="font-size:1.3rem;">Linear Regression</div></div>
+          <div class="metric-card"><div class="metric-label">R² Score</div><div class="metric-value" id="mod-r2">-</div></div>
+          <div class="metric-card"><div class="metric-label">MAE</div><div class="metric-value" id="mod-mae">-</div></div>
+          <div class="metric-card"><div class="metric-label">Train / Test Split</div><div class="metric-value">80 : 20</div></div>
+        </div>
+
+        <details open>
+          <summary>🧠 What is Machine Learning?</summary>
+          <p>Machine Learning (ML) enables computers to learn patterns from historical data and make predictions without being explicitly programmed for every scenario. Here, the model learns how study time, failures, absences, G1, and G2 relate to the final grade (G3).</p>
+        </details>
+        <details>
+          <summary>📐 What is Linear Regression?</summary>
+          <p>Linear Regression fits a linear equation <code>ŷ = β₀ + β₁x₁ + … + βₙxₙ</code> by minimizing the sum of squared residuals between actual and predicted grades.</p>
+        </details>
+        <details>
+          <summary>🔀 Why an 80:20 Train-Test Split?</summary>
+          <p>80% of the data trains the model and 20% (held out with <code>random_state=42</code>) evaluates how well it generalizes to unseen students, preventing data leakage.</p>
+        </details>
+        <details>
+          <summary>📊 Evaluation Metrics (MAE &amp; R²)</summary>
+          <p><b>MAE (1.3394):</b> Predictions deviate from the actual grade by ~1.34 marks on average.<br><b>R² Score (0.7822):</b> The model explains ~78.2% of the variance in final grades.</p>
+        </details>
+
+        <div class="grid-2" style="margin-top:1.25rem;">
+          <div class="card">
+            <div class="section-header" style="margin-top:0;">📉 Actual vs Predicted (Test Set)</div>
+            <div id="chart-actual-pred" style="height:360px;"></div>
+          </div>
+          <div class="card">
+            <div class="section-header" style="margin-top:0;">⚖️ Feature Coefficients</div>
+            <div id="chart-coefs" style="height:360px;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE 6: ABOUT PROJECT -->
+      <section id="page-about" class="page">
+        <div class="hero-title">ℹ️ About This Project</div>
+        <div class="hero-subtitle">Student Performance Prediction using Machine Learning</div>
+
+        <div class="card card-blue">
+          <h3>🎓 Project Title</h3>
+          <p style="margin-top:.4rem;">Student Performance Prediction System using Linear Regression</p>
+        </div>
+
+        <div class="card card-purple">
+          <h3>📄 Abstract</h3>
+          <p style="margin-top:.4rem; line-height:1.6;">This project develops an interactive web application that predicts students' final examination grades in Mathematics using Linear Regression trained on the UCI Student Performance dataset (<code>student-mat.csv</code>).</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>🔍 Problem Statement</h3>
+            <p style="margin-top:.4rem; line-height:1.6;">Educational institutions need early-warning mechanisms to identify students who may need extra support. Historical academic data and Linear Regression provide timely, data-driven performance estimates.</p>
+          </div>
+          <div class="card">
+            <h3>🛠️ Technologies Used</h3>
+            <p style="margin-top:.5rem;">
+              <span class="tech-badge">Python</span>
+              <span class="tech-badge">Streamlit</span>
+              <span class="tech-badge">Pandas</span>
+              <span class="tech-badge">NumPy</span>
+              <span class="tech-badge">Scikit-learn</span>
+              <span class="tech-badge">Plotly</span>
+              <span class="tech-badge">HTML / CSS / JS</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="card card-success">
+          <h3>📦 Dataset Source</h3>
+          <p style="margin-top:.4rem;">UCI Machine Learning Repository — <a href="https://archive.ics.uci.edu/dataset/320/student+performance" target="_blank" style="color:var(--blue-light);">Student Performance Dataset</a> (<code>student-mat.csv</code>).</p>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    const DATASET = [{"studytime": 2, "failures": 0, "absences": 6, "G1": 5, "G2": 6, "G3": 6}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 5, "G2": 5, "G3": 6}, {"studytime": 2, "failures": 3, "absences": 10, "G1": 7, "G2": 8, "G3": 10}, {"studytime": 3, "failures": 0, "absences": 2, "G1": 15, "G2": 14, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 6, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 10, "G1": 15, "G2": 15, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 12, "G2": 12, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 6, "G1": 6, "G2": 5, "G3": 6}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 16, "G2": 18, "G3": 19}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 14, "G2": 15, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 10, "G2": 8, "G3": 9}, {"studytime": 3, "failures": 0, "absences": 4, "G1": 10, "G2": 12, "G3": 12}, {"studytime": 1, "failures": 0, "absences": 2, "G1": 14, "G2": 14, "G3": 14}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 10, "G2": 10, "G3": 11}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 14, "G2": 16, "G3": 16}, {"studytime": 1, "failures": 0, "absences": 4, "G1": 14, "G2": 14, "G3": 14}, {"studytime": 3, "failures": 0, "absences": 6, "G1": 13, "G2": 14, "G3": 14}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 8, "G2": 10, "G3": 10}, {"studytime": 1, "failures": 3, "absences": 16, "G1": 6, "G2": 5, "G3": 5}, {"studytime": 1, "failures": 0, "absences": 4, "G1": 8, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 13, "G2": 14, "G3": 15}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 12, "G2": 15, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 15, "G2": 15, "G3": 16}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 13, "G2": 13, "G3": 12}, {"studytime": 3, "failures": 0, "absences": 2, "G1": 10, "G2": 9, "G3": 8}, {"studytime": 1, "failures": 2, "absences": 14, "G1": 6, "G2": 9, "G3": 8}, {"studytime": 1, "failures": 0, "absences": 2, "G1": 12, "G2": 12, "G3": 11}, {"studytime": 1, "failures": 0, "absences": 4, "G1": 15, "G2": 16, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 11, "G2": 11, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 16, "G1": 10, "G2": 12, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 9, "G2": 11, "G3": 12}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 17, "G2": 16, "G3": 17}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 17, "G2": 16, "G3": 16}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 8, "G2": 10, "G3": 12}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 12, "G2": 14, "G3": 15}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 8, "G2": 7, "G3": 6}, {"studytime": 3, "failures": 0, "absences": 2, "G1": 15, "G2": 16, "G3": 18}, {"studytime": 3, "failures": 0, "absences": 7, "G1": 15, "G2": 16, "G3": 15}, {"studytime": 3, "failures": 0, "absences": 2, "G1": 12, "G2": 12, "G3": 11}, {"studytime": 1, "failures": 0, "absences": 8, "G1": 14, "G2": 13, "G3": 13}, {"studytime": 2, "failures": 1, "absences": 25, "G1": 7, "G2": 10, "G3": 11}, {"studytime": 1, "failures": 0, "absences": 8, "G1": 12, "G2": 12, "G3": 12}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 19, "G2": 18, "G3": 18}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 8, "G2": 8, "G3": 11}, {"studytime": 2, "failures": 1, "absences": 14, "G1": 10, "G2": 10, "G3": 9}, {"studytime": 2, "failures": 0, "absences": 8, "G1": 8, "G2": 8, "G3": 6}, {"studytime": 2, "failures": 0, "absences": 12, "G1": 11, "G2": 12, "G3": 11}, {"studytime": 4, "failures": 0, "absences": 4, "G1": 19, "G2": 19, "G3": 20}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 15, "G2": 15, "G3": 14}, {"studytime": 2, "failures": 1, "absences": 2, "G1": 7, "G2": 7, "G3": 7}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 12, "G2": 13, "G3": 13}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 11, "G2": 13, "G3": 13}, {"studytime": 1, "failures": 1, "absences": 6, "G1": 11, "G2": 11, "G3": 10}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 8, "G2": 10, "G3": 11}, {"studytime": 1, "failures": 0, "absences": 6, "G1": 10, "G2": 13, "G3": 13}, {"studytime": 2, "failures": 0, "absences": 8, "G1": 8, "G2": 9, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 14, "G2": 15, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 14, "G2": 15, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 9, "G2": 10, "G3": 9}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 15, "G2": 16, "G3": 16}, {"studytime": 2, "failures": 0, "absences": 6, "G1": 10, "G2": 11, "G3": 11}, {"studytime": 1, "failures": 0, "absences": 6, "G1": 10, "G2": 8, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 8, "G2": 10, "G3": 9}, {"studytime": 3, "failures": 0, "absences": 2, "G1": 10, "G2": 9, "G3": 9}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 10, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 16, "G2": 15, "G3": 15}, {"studytime": 4, "failures": 0, "absences": 4, "G1": 13, "G2": 13, "G3": 12}, {"studytime": 4, "failures": 0, "absences": 4, "G1": 7, "G2": 7, "G3": 6}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 8, "G2": 9, "G3": 8}, {"studytime": 4, "failures": 0, "absences": 12, "G1": 16, "G2": 16, "G3": 16}, {"studytime": 4, "failures": 0, "absences": 0, "G1": 13, "G2": 15, "G3": 15}, {"studytime": 4, "failures": 0, "absences": 0, "G1": 10, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 2, "absences": 2, "G1": 8, "G2": 6, "G3": 5}, {"studytime": 1, "failures": 0, "absences": 2, "G1": 12, "G2": 12, "G3": 14}, {"studytime": 2, "failures": 0, "absences": 54, "G1": 11, "G2": 12, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 6, "G1": 9, "G2": 9, "G3": 10}, {"studytime": 4, "failures": 0, "absences": 8, "G1": 11, "G2": 11, "G3": 10}, {"studytime": 4, "failures": 0, "absences": 0, "G1": 11, "G2": 11, "G3": 11}, {"studytime": 1, "failures": 3, "absences": 2, "G1": 8, "G2": 8, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 12, "G1": 5, "G2": 5, "G3": 5}, {"studytime": 1, "failures": 0, "absences": 2, "G1": 10, "G2": 12, "G3": 12}, {"studytime": 3, "failures": 0, "absences": 4, "G1": 11, "G2": 10, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 10, "G1": 7, "G2": 6, "G3": 6}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 15, "G2": 15, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 9, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 2, "absences": 6, "G1": 7, "G2": 9, "G3": 8}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 8, "G2": 7, "G3": 6}, {"studytime": 3, "failures": 0, "absences": 4, "G1": 13, "G2": 14, "G3": 14}, {"studytime": 2, "failures": 1, "absences": 12, "G1": 11, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 18, "G1": 8, "G2": 6, "G3": 7}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 7, "G2": 7, "G3": 8}, {"studytime": 1, "failures": 0, "absences": 4, "G1": 16, "G2": 17, "G3": 18}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 7, "G2": 6, "G3": 6}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 11, "G2": 10, "G3": 10}, {"studytime": 4, "failures": 0, "absences": 6, "G1": 11, "G2": 13, "G3": 14}, {"studytime": 4, "failures": 1, "absences": 2, "G1": 7, "G2": 10, "G3": 10}, {"studytime": 1, "failures": 0, "absences": 2, "G1": 11, "G2": 15, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 8, "G2": 9, "G3": 10}, {"studytime": 1, "failures": 0, "absences": 6, "G1": 11, "G2": 14, "G3": 14}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 7, "G2": 9, "G3": 8}, {"studytime": 1, "failures": 0, "absences": 14, "G1": 7, "G2": 7, "G3": 5}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 16, "G2": 17, "G3": 17}, {"studytime": 1, "failures": 0, "absences": 4, "G1": 10, "G2": 13, "G3": 14}, {"studytime": 2, "failures": 0, "absences": 26, "G1": 7, "G2": 6, "G3": 6}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 16, "G2": 18, "G3": 18}, {"studytime": 4, "failures": 0, "absences": 10, "G1": 10, "G2": 11, "G3": 11}, {"studytime": 4, "failures": 0, "absences": 8, "G1": 7, "G2": 8, "G3": 8}, {"studytime": 3, "failures": 0, "absences": 2, "G1": 16, "G2": 18, "G3": 18}, {"studytime": 4, "failures": 0, "absences": 6, "G1": 10, "G2": 13, "G3": 13}, {"studytime": 3, "failures": 0, "absences": 4, "G1": 14, "G2": 15, "G3": 16}, {"studytime": 1, "failures": 0, "absences": 6, "G1": 18, "G2": 19, "G3": 19}, {"studytime": 3, "failures": 1, "absences": 0, "G1": 7, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 1, "absences": 6, "G1": 10, "G2": 13, "G3": 13}, {"studytime": 1, "failures": 0, "absences": 10, "G1": 18, "G2": 19, "G3": 19}, {"studytime": 2, "failures": 0, "absences": 8, "G1": 9, "G2": 9, "G3": 9}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 15, "G2": 15, "G3": 16}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 11, "G2": 13, "G3": 14}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 13, "G2": 14, "G3": 13}, {"studytime": 2, "failures": 1, "absences": 20, "G1": 9, "G2": 7, "G3": 8}, {"studytime": 1, "failures": 0, "absences": 6, "G1": 14, "G2": 13, "G3": 13}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 16, "G2": 15, "G3": 15}, {"studytime": 4, "failures": 0, "absences": 6, "G1": 16, "G2": 14, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 13, "G2": 13, "G3": 13}, {"studytime": 1, "failures": 0, "absences": 18, "G1": 14, "G2": 11, "G3": 13}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 8, "G2": 7, "G3": 8}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 13, "G2": 13, "G3": 12}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 7, "G2": 10, "G3": 11}, {"studytime": 2, "failures": 3, "absences": 2, "G1": 7, "G2": 8, "G3": 9}, {"studytime": 1, "failures": 2, "absences": 0, "G1": 7, "G2": 4, "G3": 0}, {"studytime": 1, "failures": 0, "absences": 8, "G1": 18, "G2": 18, "G3": 18}, {"studytime": 3, "failures": 2, "absences": 0, "G1": 12, "G2": 0, "G3": 0}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 8, "G2": 0, "G3": 0}, {"studytime": 1, "failures": 0, "absences": 12, "G1": 10, "G2": 13, "G3": 12}, {"studytime": 1, "failures": 0, "absences": 16, "G1": 12, "G2": 11, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 9, "G2": 0, "G3": 0}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 11, "G2": 0, "G3": 0}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 10, "G2": 0, "G3": 0}, {"studytime": 1, "failures": 2, "absences": 0, "G1": 4, "G2": 0, "G3": 0}, {"studytime": 2, "failures": 1, "absences": 0, "G1": 14, "G2": 12, "G3": 12}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 16, "G2": 16, "G3": 15}, {"studytime": 4, "failures": 0, "absences": 0, "G1": 7, "G2": 9, "G3": 0}, {"studytime": 1, "failures": 2, "absences": 8, "G1": 9, "G2": 9, "G3": 9}, {"studytime": 3, "failures": 0, "absences": 2, "G1": 9, "G2": 11, "G3": 11}, {"studytime": 1, "failures": 0, "absences": 2, "G1": 14, "G2": 14, "G3": 13}, {"studytime": 1, "failures": 3, "absences": 0, "G1": 5, "G2": 0, "G3": 0}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 8, "G2": 11, "G3": 11}, {"studytime": 2, "failures": 3, "absences": 0, "G1": 6, "G2": 7, "G3": 0}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 10, "G2": 11, "G3": 11}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 7, "G2": 6, "G3": 0}, {"studytime": 1, "failures": 3, "absences": 0, "G1": 8, "G2": 9, "G3": 10}, {"studytime": 1, "failures": 3, "absences": 0, "G1": 6, "G2": 5, "G3": 0}, {"studytime": 1, "failures": 1, "absences": 6, "G1": 12, "G2": 13, "G3": 14}, {"studytime": 3, "failures": 2, "absences": 8, "G1": 10, "G2": 10, "G3": 10}, {"studytime": 1, "failures": 3, "absences": 0, "G1": 5, "G2": 0, "G3": 0}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 11, "G2": 11, "G3": 12}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 11, "G2": 8, "G3": 8}, {"studytime": 1, "failures": 0, "absences": 8, "G1": 16, "G2": 12, "G3": 13}, {"studytime": 1, "failures": 3, "absences": 6, "G1": 9, "G2": 8, "G3": 10}, {"studytime": 1, "failures": 0, "absences": 2, "G1": 17, "G2": 15, "G3": 15}, {"studytime": 2, "failures": 1, "absences": 4, "G1": 10, "G2": 12, "G3": 12}, {"studytime": 1, "failures": 2, "absences": 0, "G1": 7, "G2": 6, "G3": 0}, {"studytime": 2, "failures": 2, "absences": 6, "G1": 5, "G2": 9, "G3": 7}, {"studytime": 1, "failures": 1, "absences": 0, "G1": 7, "G2": 0, "G3": 0}, {"studytime": 1, "failures": 0, "absences": 2, "G1": 10, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 3, "absences": 0, "G1": 5, "G2": 8, "G3": 7}, {"studytime": 1, "failures": 1, "absences": 16, "G1": 12, "G2": 11, "G3": 12}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 10, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 14, "G2": 15, "G3": 16}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 6, "G2": 7, "G3": 0}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 14, "G2": 14, "G3": 14}, {"studytime": 1, "failures": 2, "absences": 0, "G1": 6, "G2": 5, "G3": 0}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 13, "G2": 15, "G3": 16}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 13, "G2": 11, "G3": 10}, {"studytime": 2, "failures": 3, "absences": 0, "G1": 8, "G2": 7, "G3": 0}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 10, "G2": 11, "G3": 9}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 10, "G2": 9, "G3": 9}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 13, "G2": 13, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 6, "G2": 5, "G3": 6}, {"studytime": 1, "failures": 0, "absences": 10, "G1": 10, "G2": 8, "G3": 9}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 10, "G2": 10, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 10, "G1": 9, "G2": 8, "G3": 8}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 12, "G2": 13, "G3": 12}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 16, "G2": 17, "G3": 17}, {"studytime": 2, "failures": 0, "absences": 56, "G1": 9, "G2": 9, "G3": 8}, {"studytime": 2, "failures": 0, "absences": 14, "G1": 12, "G2": 13, "G3": 12}, {"studytime": 2, "failures": 0, "absences": 12, "G1": 12, "G2": 12, "G3": 11}, {"studytime": 1, "failures": 0, "absences": 2, "G1": 11, "G2": 12, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 15, "G2": 15, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 6, "G1": 8, "G2": 7, "G3": 9}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 8, "G2": 9, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 10, "G1": 11, "G2": 12, "G3": 13}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 8, "G2": 8, "G3": 9}, {"studytime": 2, "failures": 0, "absences": 12, "G1": 7, "G2": 8, "G3": 8}, {"studytime": 1, "failures": 0, "absences": 8, "G1": 8, "G2": 9, "G3": 10}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 13, "G2": 14, "G3": 14}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 14, "G2": 15, "G3": 15}, {"studytime": 1, "failures": 0, "absences": 4, "G1": 17, "G2": 15, "G3": 16}, {"studytime": 1, "failures": 0, "absences": 8, "G1": 9, "G2": 9, "G3": 10}, {"studytime": 1, "failures": 1, "absences": 24, "G1": 18, "G2": 18, "G3": 18}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 9, "G2": 9, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 16, "G2": 16, "G3": 16}, {"studytime": 2, "failures": 0, "absences": 6, "G1": 8, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 9, "G2": 9, "G3": 10}, {"studytime": 1, "failures": 0, "absences": 18, "G1": 7, "G2": 6, "G3": 6}, {"studytime": 4, "failures": 0, "absences": 6, "G1": 10, "G2": 10, "G3": 11}, {"studytime": 3, "failures": 1, "absences": 28, "G1": 10, "G2": 9, "G3": 9}, {"studytime": 2, "failures": 3, "absences": 5, "G1": 7, "G2": 7, "G3": 7}, {"studytime": 2, "failures": 0, "absences": 10, "G1": 11, "G2": 12, "G3": 13}, {"studytime": 1, "failures": 0, "absences": 6, "G1": 9, "G2": 9, "G3": 10}, {"studytime": 3, "failures": 0, "absences": 6, "G1": 7, "G2": 7, "G3": 7}, {"studytime": 4, "failures": 0, "absences": 10, "G1": 8, "G2": 8, "G3": 8}, {"studytime": 2, "failures": 0, "absences": 13, "G1": 12, "G2": 12, "G3": 13}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 12, "G2": 13, "G3": 14}, {"studytime": 2, "failures": 1, "absences": 15, "G1": 6, "G2": 7, "G3": 8}, {"studytime": 1, "failures": 0, "absences": 12, "G1": 8, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 14, "G2": 15, "G3": 15}, {"studytime": 2, "failures": 2, "absences": 22, "G1": 6, "G2": 6, "G3": 4}, {"studytime": 2, "failures": 1, "absences": 13, "G1": 6, "G2": 6, "G3": 8}, {"studytime": 1, "failures": 0, "absences": 3, "G1": 7, "G2": 7, "G3": 8}, {"studytime": 3, "failures": 0, "absences": 4, "G1": 9, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 6, "G2": 6, "G3": 6}, {"studytime": 3, "failures": 1, "absences": 0, "G1": 6, "G2": 5, "G3": 0}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 16, "G2": 16, "G3": 17}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 12, "G2": 13, "G3": 13}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 13, "G2": 13, "G3": 14}, {"studytime": 2, "failures": 1, "absences": 16, "G1": 9, "G2": 8, "G3": 7}, {"studytime": 2, "failures": 0, "absences": 10, "G1": 16, "G2": 15, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 12, "G2": 11, "G3": 12}, {"studytime": 2, "failures": 0, "absences": 14, "G1": 10, "G2": 8, "G3": 9}, {"studytime": 3, "failures": 0, "absences": 10, "G1": 12, "G2": 10, "G3": 12}, {"studytime": 2, "failures": 0, "absences": 14, "G1": 13, "G2": 13, "G3": 14}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 11, "G2": 11, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 14, "G1": 11, "G2": 9, "G3": 9}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 14, "G2": 13, "G3": 13}, {"studytime": 2, "failures": 0, "absences": 18, "G1": 9, "G2": 7, "G3": 6}, {"studytime": 3, "failures": 0, "absences": 10, "G1": 11, "G2": 9, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 14, "G2": 13, "G3": 13}, {"studytime": 1, "failures": 0, "absences": 20, "G1": 13, "G2": 12, "G3": 12}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 13, "G2": 11, "G3": 11}, {"studytime": 2, "failures": 1, "absences": 0, "G1": 7, "G2": 7, "G3": 0}, {"studytime": 2, "failures": 0, "absences": 14, "G1": 12, "G2": 12, "G3": 12}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 10, "G2": 11, "G3": 12}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 6, "G2": 0, "G3": 0}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 13, "G2": 12, "G3": 12}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 7, "G2": 0, "G3": 0}, {"studytime": 1, "failures": 0, "absences": 6, "G1": 18, "G2": 18, "G3": 18}, {"studytime": 1, "failures": 0, "absences": 4, "G1": 12, "G2": 12, "G3": 13}, {"studytime": 1, "failures": 3, "absences": 16, "G1": 6, "G2": 8, "G3": 8}, {"studytime": 2, "failures": 1, "absences": 8, "G1": 3, "G2": 5, "G3": 5}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 13, "G2": 15, "G3": 15}, {"studytime": 1, "failures": 1, "absences": 0, "G1": 6, "G2": 8, "G3": 8}, {"studytime": 2, "failures": 0, "absences": 6, "G1": 7, "G2": 10, "G3": 10}, {"studytime": 1, "failures": 1, "absences": 4, "G1": 6, "G2": 9, "G3": 8}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 8, "G2": 9, "G3": 8}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 8, "G2": 12, "G3": 12}, {"studytime": 1, "failures": 1, "absences": 2, "G1": 7, "G2": 9, "G3": 8}, {"studytime": 4, "failures": 0, "absences": 6, "G1": 14, "G2": 12, "G3": 13}, {"studytime": 2, "failures": 0, "absences": 12, "G1": 11, "G2": 11, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 8, "G1": 15, "G2": 14, "G3": 14}, {"studytime": 4, "failures": 0, "absences": 0, "G1": 10, "G2": 9, "G3": 0}, {"studytime": 2, "failures": 0, "absences": 21, "G1": 17, "G2": 18, "G3": 18}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 8, "G2": 8, "G3": 8}, {"studytime": 3, "failures": 0, "absences": 1, "G1": 13, "G2": 12, "G3": 12}, {"studytime": 3, "failures": 0, "absences": 4, "G1": 10, "G2": 9, "G3": 9}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 9, "G2": 10, "G3": 0}, {"studytime": 2, "failures": 0, "absences": 13, "G1": 17, "G2": 17, "G3": 17}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 9, "G2": 9, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 8, "G1": 12, "G2": 10, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 10, "G1": 10, "G2": 9, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 6, "G2": 0, "G3": 0}, {"studytime": 2, "failures": 2, "absences": 15, "G1": 9, "G2": 9, "G3": 9}, {"studytime": 4, "failures": 0, "absences": 4, "G1": 15, "G2": 14, "G3": 14}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 11, "G2": 11, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 15, "G2": 14, "G3": 14}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 10, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 6, "G1": 12, "G2": 12, "G3": 12}, {"studytime": 2, "failures": 0, "absences": 75, "G1": 10, "G2": 9, "G3": 9}, {"studytime": 1, "failures": 0, "absences": 22, "G1": 9, "G2": 9, "G3": 9}, {"studytime": 2, "failures": 1, "absences": 15, "G1": 9, "G2": 8, "G3": 8}, {"studytime": 1, "failures": 0, "absences": 8, "G1": 10, "G2": 11, "G3": 10}, {"studytime": 1, "failures": 0, "absences": 30, "G1": 8, "G2": 8, "G3": 8}, {"studytime": 1, "failures": 1, "absences": 19, "G1": 11, "G2": 9, "G3": 10}, {"studytime": 4, "failures": 0, "absences": 1, "G1": 12, "G2": 12, "G3": 12}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 8, "G2": 9, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 10, "G2": 9, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 12, "G2": 10, "G3": 11}, {"studytime": 3, "failures": 0, "absences": 5, "G1": 18, "G2": 18, "G3": 19}, {"studytime": 3, "failures": 0, "absences": 6, "G1": 13, "G2": 12, "G3": 12}, {"studytime": 3, "failures": 0, "absences": 6, "G1": 15, "G2": 14, "G3": 14}, {"studytime": 2, "failures": 0, "absences": 9, "G1": 15, "G2": 13, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 11, "G1": 12, "G2": 11, "G3": 11}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 15, "G2": 15, "G3": 15}, {"studytime": 2, "failures": 1, "absences": 12, "G1": 12, "G2": 12, "G3": 13}, {"studytime": 4, "failures": 0, "absences": 6, "G1": 18, "G2": 18, "G3": 18}, {"studytime": 3, "failures": 0, "absences": 8, "G1": 14, "G2": 13, "G3": 14}, {"studytime": 1, "failures": 0, "absences": 4, "G1": 14, "G2": 12, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 10, "G2": 9, "G3": 0}, {"studytime": 2, "failures": 0, "absences": 10, "G1": 10, "G2": 8, "G3": 8}, {"studytime": 4, "failures": 0, "absences": 0, "G1": 14, "G2": 13, "G3": 14}, {"studytime": 1, "failures": 0, "absences": 5, "G1": 16, "G2": 15, "G3": 16}, {"studytime": 2, "failures": 0, "absences": 14, "G1": 12, "G2": 10, "G3": 11}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 11, "G2": 11, "G3": 10}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 15, "G2": 12, "G3": 14}, {"studytime": 4, "failures": 0, "absences": 0, "G1": 17, "G2": 17, "G3": 18}, {"studytime": 2, "failures": 1, "absences": 20, "G1": 15, "G2": 14, "G3": 13}, {"studytime": 2, "failures": 1, "absences": 8, "G1": 14, "G2": 12, "G3": 12}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 17, "G2": 18, "G3": 18}, {"studytime": 1, "failures": 1, "absences": 38, "G1": 8, "G2": 9, "G3": 8}, {"studytime": 2, "failures": 1, "absences": 0, "G1": 15, "G2": 12, "G3": 12}, {"studytime": 2, "failures": 1, "absences": 18, "G1": 12, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 1, "absences": 0, "G1": 9, "G2": 9, "G3": 0}, {"studytime": 2, "failures": 0, "absences": 20, "G1": 14, "G2": 12, "G3": 13}, {"studytime": 2, "failures": 1, "absences": 3, "G1": 13, "G2": 11, "G3": 11}, {"studytime": 2, "failures": 1, "absences": 22, "G1": 13, "G2": 10, "G3": 11}, {"studytime": 3, "failures": 2, "absences": 14, "G1": 15, "G2": 13, "G3": 13}, {"studytime": 3, "failures": 1, "absences": 40, "G1": 13, "G2": 11, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 8, "G2": 8, "G3": 0}, {"studytime": 3, "failures": 0, "absences": 9, "G1": 9, "G2": 10, "G3": 9}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 11, "G2": 11, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 11, "G2": 11, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 23, "G1": 13, "G2": 13, "G3": 13}, {"studytime": 2, "failures": 0, "absences": 12, "G1": 11, "G2": 9, "G3": 9}, {"studytime": 3, "failures": 0, "absences": 3, "G1": 11, "G2": 11, "G3": 11}, {"studytime": 3, "failures": 0, "absences": 1, "G1": 12, "G2": 14, "G3": 15}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 16, "G2": 15, "G3": 15}, {"studytime": 3, "failures": 0, "absences": 3, "G1": 9, "G2": 12, "G3": 11}, {"studytime": 1, "failures": 0, "absences": 3, "G1": 14, "G2": 15, "G3": 16}, {"studytime": 1, "failures": 0, "absences": 8, "G1": 11, "G2": 10, "G3": 10}, {"studytime": 3, "failures": 0, "absences": 7, "G1": 10, "G2": 9, "G3": 9}, {"studytime": 3, "failures": 0, "absences": 4, "G1": 14, "G2": 14, "G3": 14}, {"studytime": 4, "failures": 0, "absences": 2, "G1": 9, "G2": 8, "G3": 8}, {"studytime": 3, "failures": 0, "absences": 7, "G1": 12, "G2": 14, "G3": 14}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 7, "G2": 0, "G3": 0}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 8, "G2": 8, "G3": 0}, {"studytime": 4, "failures": 0, "absences": 0, "G1": 10, "G2": 9, "G3": 0}, {"studytime": 3, "failures": 0, "absences": 16, "G1": 16, "G2": 15, "G3": 15}, {"studytime": 3, "failures": 1, "absences": 12, "G1": 14, "G2": 13, "G3": 13}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 7, "G2": 8, "G3": 0}, {"studytime": 4, "failures": 0, "absences": 7, "G1": 16, "G2": 15, "G3": 17}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 9, "G2": 10, "G3": 10}, {"studytime": 3, "failures": 1, "absences": 4, "G1": 11, "G2": 12, "G3": 11}, {"studytime": 2, "failures": 1, "absences": 0, "G1": 10, "G2": 10, "G3": 0}, {"studytime": 2, "failures": 0, "absences": 11, "G1": 16, "G2": 15, "G3": 15}, {"studytime": 2, "failures": 1, "absences": 0, "G1": 9, "G2": 8, "G3": 0}, {"studytime": 3, "failures": 0, "absences": 4, "G1": 11, "G2": 10, "G3": 10}, {"studytime": 3, "failures": 0, "absences": 7, "G1": 13, "G2": 13, "G3": 14}, {"studytime": 3, "failures": 0, "absences": 9, "G1": 16, "G2": 15, "G3": 16}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 10, "G2": 10, "G3": 9}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 13, "G2": 15, "G3": 15}, {"studytime": 1, "failures": 1, "absences": 10, "G1": 11, "G2": 13, "G3": 13}, {"studytime": 2, "failures": 3, "absences": 8, "G1": 8, "G2": 7, "G3": 8}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 13, "G2": 13, "G3": 13}, {"studytime": 1, "failures": 1, "absences": 7, "G1": 8, "G2": 7, "G3": 8}, {"studytime": 1, "failures": 1, "absences": 4, "G1": 8, "G2": 8, "G3": 8}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 13, "G2": 11, "G3": 11}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 10, "G2": 9, "G3": 9}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 12, "G2": 13, "G3": 13}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 12, "G2": 12, "G3": 11}, {"studytime": 1, "failures": 0, "absences": 4, "G1": 10, "G2": 10, "G3": 10}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 18, "G2": 16, "G3": 16}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 13, "G2": 13, "G3": 13}, {"studytime": 2, "failures": 1, "absences": 2, "G1": 13, "G2": 12, "G3": 12}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 11, "G2": 11, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 16, "G2": 15, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 12, "G2": 11, "G3": 12}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 10, "G2": 10, "G3": 10}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 13, "G2": 13, "G3": 13}, {"studytime": 1, "failures": 1, "absences": 0, "G1": 7, "G2": 6, "G3": 0}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 11, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 10, "G1": 14, "G2": 12, "G3": 11}, {"studytime": 2, "failures": 2, "absences": 4, "G1": 7, "G2": 7, "G3": 9}, {"studytime": 1, "failures": 0, "absences": 3, "G1": 14, "G2": 12, "G3": 12}, {"studytime": 3, "failures": 0, "absences": 8, "G1": 13, "G2": 11, "G3": 11}, {"studytime": 1, "failures": 0, "absences": 14, "G1": 6, "G2": 5, "G3": 5}, {"studytime": 3, "failures": 0, "absences": 0, "G1": 19, "G2": 18, "G3": 19}, {"studytime": 3, "failures": 0, "absences": 2, "G1": 8, "G2": 8, "G3": 10}, {"studytime": 3, "failures": 2, "absences": 4, "G1": 15, "G2": 14, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 8, "G2": 9, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 15, "G2": 15, "G3": 15}, {"studytime": 2, "failures": 0, "absences": 17, "G1": 10, "G2": 10, "G3": 10}, {"studytime": 2, "failures": 0, "absences": 4, "G1": 15, "G2": 14, "G3": 14}, {"studytime": 1, "failures": 0, "absences": 5, "G1": 7, "G2": 6, "G3": 7}, {"studytime": 2, "failures": 0, "absences": 2, "G1": 11, "G2": 11, "G3": 10}, {"studytime": 1, "failures": 1, "absences": 0, "G1": 6, "G2": 5, "G3": 0}, {"studytime": 1, "failures": 1, "absences": 14, "G1": 6, "G2": 5, "G3": 5}, {"studytime": 3, "failures": 0, "absences": 2, "G1": 10, "G2": 9, "G3": 10}, {"studytime": 1, "failures": 0, "absences": 7, "G1": 6, "G2": 5, "G3": 6}, {"studytime": 3, "failures": 1, "absences": 0, "G1": 7, "G2": 5, "G3": 0}, {"studytime": 2, "failures": 0, "absences": 0, "G1": 7, "G2": 9, "G3": 8}, {"studytime": 2, "failures": 1, "absences": 0, "G1": 6, "G2": 5, "G3": 0}, {"studytime": 2, "failures": 2, "absences": 11, "G1": 9, "G2": 9, "G3": 9}, {"studytime": 1, "failures": 0, "absences": 3, "G1": 14, "G2": 16, "G3": 16}, {"studytime": 1, "failures": 3, "absences": 3, "G1": 10, "G2": 8, "G3": 7}, {"studytime": 1, "failures": 0, "absences": 0, "G1": 11, "G2": 12, "G3": 10}, {"studytime": 1, "failures": 0, "absences": 5, "G1": 8, "G2": 9, "G3": 9}];
+    const MODEL = {"intercept": -1.621312, "coefs": {"studytime": -0.071231, "failures": -0.455813, "absences": 0.039245, "G1": 0.144463, "G2": 0.979615}, "mae": 1.3394, "r2": 0.7822, "y_test": [10, 12, 5, 10, 9, 13, 18, 6, 0, 14, 15, 7, 15, 10, 14, 8, 8, 11, 15, 0, 14, 16, 16, 6, 0, 19, 11, 12, 17, 10, 8, 10, 15, 13, 8, 5, 0, 15, 14, 8, 5, 11, 14, 9, 15, 10, 11, 13, 13, 16, 13, 15, 12, 10, 6, 12, 11, 0, 16, 17, 14, 10, 10, 6, 9, 17, 8, 10, 9, 15, 6, 10, 15, 19, 12, 6, 9, 15, 5], "y_pred": [6.01, 12.2, 3.43, 8.52, 7.87, 12.7, 18.69, 7.1, 7.23, 12.64, 14.95, 6.27, 13.65, 11.65, 14.43, 7.74, 6.25, 10.68, 15.17, 8.35, 14.2, 16.12, 14.95, 5.07, 7.92, 19.91, 10.46, 9.19, 17.13, 10.77, 9.32, 7.24, 15.03, 12.86, 6.03, 4.17, -2.03, 15.11, 11.87, 7.63, 4.44, 10.17, 14.06, 7.83, 15.54, 9.62, 12.05, 14.45, 12.51, 15.61, 13.38, 14.95, 10.31, 8.37, 4.35, 12.96, 9.84, 5.96, 15.18, 16.37, 12.65, 8.59, 6.31, 4.16, 5.35, 17.2, 7.76, 9.71, 9.61, 15.49, 7.54, 9.41, 13.49, 19.76, 10.75, 5.52, 8.67, 14.13, 3.33]};
+
+    const PLOTLY_BASE = {
+      paper_bgcolor: "rgba(0,0,0,0)",
+      plot_bgcolor: "rgba(15,27,45,0.6)",
+      font: { family: "Inter, sans-serif", color: "#e8eaf6" },
+      margin: { l: 45, r: 20, t: 35, b: 45 },
+      xaxis: { gridcolor: "rgba(74,144,217,0.1)" },
+      yaxis: { gridcolor: "rgba(74,144,217,0.1)" }
+    };
+
+    const predictionHistory = [];
+    let currentFiltered = DATASET.slice();
+
+    function showPage(id, btn) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + id).classList.add('active');
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      document.querySelector('.sidebar').classList.remove('open');
+      window.dispatchEvent(new Event('resize'));
+    }
+
+    function showTab(id, btn) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      window.dispatchEvent(new Event('resize'));
+    }
+
+    function gradeInfo(score) {
+      if (score >= 16) return { label: "Excellent", cls: "grade-excellent", color: "#66bb6a" };
+      if (score >= 12) return { label: "Good", cls: "grade-good", color: "#64b5f6" };
+      if (score >= 8) return { label: "Average", cls: "grade-average", color: "#ffa726" };
+      return { label: "Needs Improvement", cls: "grade-poor", color: "#ef5350" };
+    }
+
+    function runPrediction() {
+      const studytime = Number(document.getElementById('in-study').value);
+      const failures = Number(document.getElementById('in-fail').value);
+      const absences = Math.max(0, Math.min(93, Number(document.getElementById('in-abs').value) || 0));
+      const g1 = Number(document.getElementById('in-g1').value);
+      const g2 = Number(document.getElementById('in-g2').value);
+
+      let raw = MODEL.intercept
+        + MODEL.coefs.studytime * studytime
+        + MODEL.coefs.failures * failures
+        + MODEL.coefs.absences * absences
+        + MODEL.coefs.G1 * g1
+        + MODEL.coefs.G2 * g2;
+      const pred = Math.round(Math.max(0, Math.min(20, raw)) * 100) / 100;
+      const info = gradeInfo(pred);
+
+      document.getElementById('prediction-output').style.display = 'block';
+      document.getElementById('pred-score').textContent = pred.toFixed(2);
+      const badge = document.getElementById('pred-badge');
+      badge.textContent = info.label;
+      badge.className = 'grade-badge ' + info.cls;
+      document.getElementById('pred-summary').innerHTML =
+        `<b>Input Summary</b><br>📚 Study Time: <b>${studytime}</b> &nbsp;|&nbsp; ❌ Failures: <b>${failures}</b> &nbsp;|&nbsp; 📅 Absences: <b>${absences}</b><br>📝 G1: <b>${g1}</b> &nbsp;|&nbsp; 📝 G2: <b>${g2}</b>`;
+
+      Plotly.newPlot('chart-gauge', [{
+        type: "indicator",
+        mode: "gauge+number",
+        value: pred,
+        number: { suffix: " / 20", font: { size: 32, color: "#e8eaf6" } },
+        title: { text: `<b>${info.label}</b>`, font: { size: 15, color: "#b388ff" } },
+        gauge: {
+          axis: { range: [0, 20], tickcolor: "#90a4ae" },
+          bar: { color: info.color, thickness: 0.35 },
+          bgcolor: "rgba(30,48,80,0.5)",
+          steps: [
+            { range: [0, 8], color: "rgba(239,83,80,0.12)" },
+            { range: [8, 12], color: "rgba(255,167,38,0.12)" },
+            { range: [12, 16], color: "rgba(100,181,246,0.12)" },
+            { range: [16, 20], color: "rgba(102,187,106,0.12)" }
+          ]
+        }
+      }], { ...PLOTLY_BASE, height: 280, margin: { l: 25, r: 25, t: 50, b: 15 } }, { responsive: true });
+
+      predictionHistory.push({
+        Timestamp: new Date().toLocaleString(),
+        StudyTime: studytime, Failures: failures, Absences: absences,
+        G1: g1, G2: g2, PredictedG3: pred, Grade: info.label
+      });
+      renderHistory();
+    }
+
+    function resetForm() {
+      document.getElementById('in-study').value = 2; document.getElementById('val-study').textContent = '2';
+      document.getElementById('in-fail').value = 0; document.getElementById('val-fail').textContent = '0';
+      document.getElementById('in-abs').value = 4;
+      document.getElementById('in-g1').value = 12; document.getElementById('val-g1').textContent = '12';
+      document.getElementById('in-g2').value = 13; document.getElementById('val-g2').textContent = '13';
+      document.getElementById('prediction-output').style.display = 'none';
+    }
+
+    function renderHistory() {
+      const sec = document.getElementById('history-section');
+      const dash = document.getElementById('dashboard-recent');
+      if (!predictionHistory.length) {
+        sec.style.display = 'none';
+        dash.innerHTML = `<p style="color:var(--text-muted);">No predictions made yet. Head over to <b>Predict Performance</b> to get started! 🎯</p>`;
+        return;
+      }
+      sec.style.display = 'block';
+      const rows = predictionHistory.map(r => `<tr><td>${r.Timestamp}</td><td>${r.StudyTime}</td><td>${r.Failures}</td><td>${r.Absences}</td><td>${r.G1}</td><td>${r.G2}</td><td><b>${r.PredictedG3}</b></td><td>${r.Grade}</td></tr>`).join('');
+      const html = `<table><thead><tr><th>Timestamp</th><th>Study</th><th>Failures</th><th>Absences</th><th>G1</th><th>G2</th><th>Pred G3</th><th>Grade</th></tr></thead><tbody>${rows}</tbody></table>`;
+      document.getElementById('history-table').innerHTML = html;
+      dash.innerHTML = `<div class="table-wrap" style="max-height:300px;">${html}</div>`;
+    }
+
+    function clearHistory() {
+      predictionHistory.length = 0;
+      renderHistory();
+    }
+
+    function toCSV(rows) {
+      if (!rows.length) return '';
+      const keys = Object.keys(rows[0]);
+      return [keys.join(','), ...rows.map(r => keys.map(k => `"${r[k]}"`).join(','))].join('\n');
+    }
+
+    function downloadCSV(filename, text) {
+      const blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+    }
+
+    function downloadHistoryCSV() { downloadCSV('prediction_report.csv', toCSV(predictionHistory)); }
+    function downloadFilteredCSV() { downloadCSV('student_performance_filtered.csv', toCSV(currentFiltered)); }
+
+    function filterDataset() {
+      const minG3 = Number(document.getElementById('flt-min-g3').value);
+      const st = document.getElementById('flt-study').value;
+      const fl = document.getElementById('flt-fail').value;
+      currentFiltered = DATASET.filter(r =>
+        r.G3 >= minG3 &&
+        (st === 'all' || r.studytime === Number(st)) &&
+        (fl === 'all' || r.failures === Number(fl))
+      );
+      document.getElementById('exp-filtered').textContent = currentFiltered.length;
+      const body = currentFiltered.map(r =>
+        `<tr><td>${r.studytime}</td><td>${r.failures}</td><td>${r.absences}</td><td>${r.G1}</td><td>${r.G2}</td><td><b>${r.G3}</b></td></tr>`
+      ).join('');
+      document.getElementById('dataset-table').innerHTML =
+        `<table><thead><tr><th>studytime</th><th>failures</th><th>absences</th><th>G1</th><th>G2</th><th>G3</th></tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    function avg(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+
+    function pearson(x, y) {
+      const mx = avg(x), my = avg(y);
+      let num = 0, dx = 0, dy = 0;
+      for (let i = 0; i < x.length; i++) {
+        const a = x[i] - mx, b = y[i] - my;
+        num += a * b; dx += a * a; dy += b * b;
+      }
+      return num / Math.sqrt(dx * dy);
+    }
+
+    function initApp() {
+      const g3 = DATASET.map(r => r.G3);
+      const g1 = DATASET.map(r => r.G1);
+      const g2 = DATASET.map(r => r.G2);
+      const abs = DATASET.map(r => r.absences);
+
+      document.getElementById('kpi-students').textContent = DATASET.length;
+      document.getElementById('kpi-avg-g3').textContent = avg(g3).toFixed(1) + ' / 20';
+      document.getElementById('kpi-absences').textContent = avg(abs).toFixed(1);
+      document.getElementById('kpi-r2').textContent = MODEL.r2.toFixed(4);
+      document.getElementById('mod-r2').textContent = MODEL.r2.toFixed(4);
+      document.getElementById('mod-mae').textContent = MODEL.mae.toFixed(4);
+      document.getElementById('exp-rows').textContent = DATASET.length;
+      filterDataset();
+
+      // Dashboard charts
+      Plotly.newPlot('chart-dist', [{
+        x: g3, type: 'histogram', nbinsx: 21, marker: { color: '#7c4dff' }
+      }], { ...PLOTLY_BASE, xaxis: { ...PLOTLY_BASE.xaxis, title: 'Final Grade (G3)' }, yaxis: { ...PLOTLY_BASE.yaxis, title: 'Students' } }, { responsive: true });
+
+      const studyTraces = [1, 2, 3, 4].map((lvl, idx) => ({
+        y: DATASET.filter(r => r.studytime === lvl).map(r => r.G3),
+        type: 'box', name: 'Level ' + lvl,
+        marker: { color: ['#4a90d9', '#7c4dff', '#64b5f6', '#b388ff'][idx] }
+      }));
+      Plotly.newPlot('chart-study-box', studyTraces, { ...PLOTLY_BASE, showlegend: false, yaxis: { ...PLOTLY_BASE.yaxis, title: 'Final Grade (G3)' } }, { responsive: true });
+
+      Plotly.newPlot('chart-g1g3', [{
+        x: g1, y: g3, mode: 'markers', type: 'scatter',
+        marker: { color: '#64b5f6', opacity: 0.65 }
+      }], { ...PLOTLY_BASE, xaxis: { ...PLOTLY_BASE.xaxis, title: 'G1' }, yaxis: { ...PLOTLY_BASE.yaxis, title: 'G3' } }, { responsive: true });
+
+      // Analytics charts
+      Plotly.newPlot('chart-all-grades', [
+        { x: g1, type: 'histogram', name: 'G1', opacity: 0.65, marker: { color: '#4a90d9' } },
+        { x: g2, type: 'histogram', name: 'G2', opacity: 0.65, marker: { color: '#7c4dff' } },
+        { x: g3, type: 'histogram', name: 'G3', opacity: 0.65, marker: { color: '#64b5f6' } }
+      ], { ...PLOTLY_BASE, barmode: 'overlay', title: 'Grade Distribution (G1, G2, G3)' }, { responsive: true });
+
+      const pass = g3.filter(v => v >= 10).length;
+      Plotly.newPlot('chart-pass-fail', [{
+        labels: ['Pass (≥ 10)', 'Fail (< 10)'],
+        values: [pass, g3.length - pass],
+        type: 'pie', hole: 0.5,
+        marker: { colors: ['#66bb6a', '#ef5350'] }
+      }], { ...PLOTLY_BASE, title: 'Pass / Fail Ratio' }, { responsive: true });
+
+      const studyAvgs = [1, 2, 3, 4].map(lvl => avg(DATASET.filter(r => r.studytime === lvl).map(r => r.G3)));
+      Plotly.newPlot('chart-study-bar', [{
+        x: ['1 (<2h)', '2 (2-5h)', '3 (5-10h)', '4 (>10h)'], y: studyAvgs,
+        type: 'bar', marker: { color: ['#4a90d9', '#5e7ce2', '#7c4dff', '#b388ff'] },
+        text: studyAvgs.map(v => v.toFixed(1)), textposition: 'outside'
+      }], { ...PLOTLY_BASE, title: 'Average Final Grade by Study Time', yaxis: { ...PLOTLY_BASE.yaxis, range: [0, 16] } }, { responsive: true });
+
+      Plotly.newPlot('chart-abs-scatter', [{
+        x: abs, y: g3, mode: 'markers', type: 'scatter', marker: { color: '#64b5f6', opacity: 0.65 }
+      }], { ...PLOTLY_BASE, title: 'Absences vs Final Grade (G3)', xaxis: { ...PLOTLY_BASE.xaxis, title: 'Absences' }, yaxis: { ...PLOTLY_BASE.yaxis, title: 'G3' } }, { responsive: true });
+
+      const failLevels = [0, 1, 2, 3];
+      const failAvgs = failLevels.map(f => avg(DATASET.filter(r => r.failures === f).map(r => r.G3)));
+      Plotly.newPlot('chart-fail-bar', [{
+        x: failLevels.map(String), y: failAvgs, type: 'bar',
+        marker: { color: ['#66bb6a', '#ffa726', '#ef5350', '#d32f2f'] },
+        text: failAvgs.map(v => v.toFixed(1)), textposition: 'outside'
+      }], { ...PLOTLY_BASE, title: 'Average Final Grade by Previous Failures', xaxis: { ...PLOTLY_BASE.xaxis, title: 'Failures' }, yaxis: { ...PLOTLY_BASE.yaxis, range: [0, 15] } }, { responsive: true });
+
+      const cols = ['studytime', 'failures', 'absences', 'G1', 'G2', 'G3'];
+      const z = cols.map(c1 => cols.map(c2 => Number(pearson(DATASET.map(r => r[c1]), DATASET.map(r => r[c2])).toFixed(2))));
+      Plotly.newPlot('chart-heatmap', [{
+        z: z, x: cols, y: cols, type: 'heatmap',
+        colorscale: [[0, '#0f1b2d'], [0.5, '#4a90d9'], [1, '#b388ff']],
+        text: z, texttemplate: '%{text}'
+      }], { ...PLOTLY_BASE, title: 'Pearson Correlation Matrix' }, { responsive: true });
+
+      // Model charts
+      Plotly.newPlot('chart-actual-pred', [
+        { x: MODEL.y_test, y: MODEL.y_pred, mode: 'markers', name: 'Test Samples', marker: { color: '#7c4dff', opacity: 0.75 } },
+        { x: [0, 20], y: [0, 20], mode: 'lines', name: 'Perfect Fit', line: { color: '#ef5350', dash: 'dash' } }
+      ], { ...PLOTLY_BASE, xaxis: { ...PLOTLY_BASE.xaxis, title: 'Actual G3' }, yaxis: { ...PLOTLY_BASE.yaxis, title: 'Predicted G3' } }, { responsive: true });
+
+      const featNames = Object.keys(MODEL.coefs);
+      const featVals = Object.values(MODEL.coefs);
+      Plotly.newPlot('chart-coefs', [{
+        x: featVals, y: featNames, type: 'bar', orientation: 'h',
+        marker: { color: featVals.map(v => v >= 0 ? '#66bb6a' : '#ef5350') },
+        text: featVals.map(v => v.toFixed(3)), textposition: 'outside'
+      }], { ...PLOTLY_BASE, xaxis: { ...PLOTLY_BASE.xaxis, title: 'Coefficient' } }, { responsive: true });
+    }
+
+    initApp();
+  </script>
+</body>
+</html>
